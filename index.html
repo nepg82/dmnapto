@@ -1,0 +1,238 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>PTO Planner</title>
+<meta name="theme-color" content="#1b5a73">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="PTO">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+:root{--bg:#eef2f4;--sf:#fff;--ink:#14232b;--mut:#5b6b74;--ln:#d3dde2;--ac:#1b5a73;--acs:#dcebf1;--wn:#a8500c;--wns:#fbe9d8;--bad:#b3261e;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1a20;--sf:#172830;--ink:#e6eef1;--mut:#9bb0ba;--ln:#2a404a;--ac:#6cb8d4;--acs:#1d3a47;--wn:#f0a366;--wns:#3b2a1a;--bad:#ff8a80;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0f1a20;--sf:#172830;--ink:#e6eef1;--mut:#9bb0ba;--ln:#2a404a;--ac:#6cb8d4;--acs:#1d3a47;--wn:#f0a366;--wns:#3b2a1a;--bad:#ff8a80;color-scheme:dark}
+*{box-sizing:border-box}html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+main{max-width:760px;margin:0 auto;padding:18px 16px 60px}
+h1{font-size:1.5rem;margin:0 0 2px;letter-spacing:-.01em}h2{font-size:1.05rem;margin:26px 0 8px}
+.sub{color:var(--mut);margin:0 0 16px}
+.panel{background:var(--sf);border:1px solid var(--ln);border-radius:10px;padding:14px}
+label{display:block;font-size:.85rem;color:var(--mut);margin-bottom:3px}
+input,select,button{font:inherit;color:inherit}
+input,select{width:100%;padding:9px 10px;border:1px solid var(--ln);border-radius:7px;background:var(--bg)}
+button{cursor:pointer;border:0;border-radius:7px;padding:9px 14px;background:var(--ac);color:var(--bg);font-weight:600}
+button.g{background:transparent;color:var(--ac);border:1px solid var(--ln)}
+:focus-visible{outline:2px solid var(--ac);outline-offset:2px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:end}.row>div{flex:1 1 130px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px}
+.card{background:var(--sf);border:1px solid var(--ln);border-radius:10px;padding:12px 14px;border-left:5px solid var(--ac)}
+.card .n{font-size:.9rem;color:var(--mut)}
+.card .v{font-size:2rem;font-weight:700;font-variant-numeric:tabular-nums;line-height:1.15}
+.card .v small{font-size:.9rem;font-weight:500;color:var(--mut)}
+.card .t{font-size:.85rem;color:var(--mut)}
+.card.w{border-left-color:var(--wn)}.card .t.w{color:var(--wn)}
+.warn{background:var(--wns);color:var(--wn);border-radius:8px;padding:8px 12px;margin:8px 0;font-size:.92rem}
+ul{list-style:none;margin:0;padding:0}
+li.i{display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid var(--ln);font-size:.93rem}
+li.i:last-child{border:0}li.i span:first-child{color:var(--mut);white-space:nowrap}
+li.i button{padding:2px 9px;background:transparent;color:var(--bad);border:1px solid var(--ln)}
+details{margin-top:22px}summary{cursor:pointer;font-weight:600}
+.notes li{padding:4px 0;color:var(--mut);font-size:.9rem}
+.empty{color:var(--mut);font-size:.92rem;margin:4px 0}
+.con{background:#0b1418;color:#b8e0c8;font:12px/1.5 ui-monospace,Menlo,Consolas,monospace;border-radius:8px;padding:10px;height:150px;overflow:auto;margin:12px 0 0;white-space:pre-wrap}
+details>summary+.panel{margin-top:8px}
+</style></head>
+<body><main>
+<h1>PTO Planner</h1>
+<p class="sub">Pick a date. See what you'll have.</p>
+
+<div class="panel"><div class="row">
+<div><label for="target">Balances on</label><input id="target" type="date" data-k="target"></div>
+<div style="flex:0 0 auto"><button class="g" id="today">Today</button></div></div></div>
+
+<div id="warns"></div>
+<h2>Projected balances</h2>
+<div class="grid" id="cards"></div>
+
+<h2>Time off taken and planned</h2>
+<div class="panel">
+<div class="row">
+<div><label for="pd">From</label><input id="pd" type="date"></div>
+<div><label for="pd2">Through (optional)</label><input id="pd2" type="date"></div>
+<div><label for="pc">Category</label><select id="pc"><option value="vac">Vacation</option><option value="sick">Sick</option><option value="pers">Personal</option><option value="hol">Holiday</option><option value="flo">Floater</option></select></div>
+<div><label for="ph">Hours per day</label><input id="ph" type="number" value="8" min="0.25" step="0.25"></div>
+<div style="flex:0 0 auto"><button id="padd">Add</button></div></div>
+<ul id="plans"></ul></div>
+
+<details open><summary>What changes by then</summary>
+<div class="panel" style="margin-top:8px"><ul id="log"></ul></div></details>
+
+<details><summary>Check against a paystub</summary>
+<div class="panel" style="margin-top:8px">
+<p class="empty">Enter the balances from a paystub and the planner compares them with its own numbers for that date. A mismatch usually means a day taken is missing, or a rule differs from what HR applies.</p>
+<div class="row">
+<div><label>Paystub date</label><input type="date" data-c="d"></div>
+
+<div><label>Sick</label><input type="number" step="0.25" data-c="sick"></div>
+<div><label>Personal</label><input type="number" step="0.25" data-c="pers"></div></div>
+<div class="row" style="margin-top:10px">
+<div><label>Holiday</label><input type="number" step="0.25" data-c="hol"></div>
+
+<div><label>Floater</label><input type="number" step="0.25" data-c="flo"></div>
+</div><div id="chk" style="margin-top:10px"></div>
+<p style="margin:12px 0 0"><label style="display:flex;gap:8px;align-items:center;color:var(--ink)"><input type="checkbox" data-k="sunday" style="width:auto"> Also credit Holiday time when a holiday falls on a Sunday</label></p>
+<p style="margin:12px 0 0"><button class="g" id="reset">Reset to defaults</button></p>
+</div></details>
+
+<details><summary>Git sync</summary>
+<div class="panel" style="margin-top:8px">
+<p class="empty">Saves your time-off entries to a JSON file in a GitHub repo. Use a fine-grained token limited to that one repo with Contents: read and write. The token is stored only in this browser and is never written to the data file. A private repo is best, since the file lists your days off.</p>
+<div class="row"><div><label>Owner</label><input data-g="owner" autocomplete="off" autocapitalize="off"></div><div><label>Repo</label><input data-g="repo" autocomplete="off" autocapitalize="off"></div></div>
+<div class="row" style="margin-top:10px"><div><label>Branch</label><input data-g="branch" placeholder="main" autocapitalize="off"></div><div><label>File path</label><input data-g="path" placeholder="pto-data.json" autocapitalize="off"></div></div>
+<div style="margin-top:10px"><label>Token</label><input type="password" data-g="token" autocomplete="off"></div>
+<div class="row" style="margin-top:12px"><div style="flex:0 0 auto"><button id="gpull">Pull</button></div><div style="flex:0 0 auto"><button id="gpush">Push</button></div><div style="flex:0 0 auto"><button class="g" id="gtest">Test</button></div><div style="flex:0 0 auto"><button class="g" id="gclr">Forget token</button></div></div>
+<pre class="con" id="con" aria-live="polite"></pre>
+</div></details>
+
+<details><summary>Rules used</summary>
+<ul class="notes">
+<li>Everything is computed from your hire date, June 4, 2026, with 40 h of Personal at hire, plus the time you enter. Pay periods are 14 days and accruals post on each period's last day.</li>
+<li>Each pay period: +4 h Vacation and +4 h Sick (Vacation becomes 6 h from the 8th anniversary).</li>
+<li>Vacation can't be used until 13 pay periods are complete (Dec 3, 2026). Everything accrued before then counts once unlocked.</li>
+<li>Each June 4: Personal resets to 40 h (the old balance is lost). Vacation is capped at 320 h first, then +8 h × years of service through the 7th anniversary.</li>
+<li>Sick is capped at 2,000 h.</li>
+<li>Floaters: Lincoln's Birthday (Feb 12) and Election Day (Tuesday after the first Monday in November), +8 h each, expiring on the next occurrence.</li>
+<li>Holiday: +8 h when New Year's Day, July 4, Veterans Day or Christmas lands on a Saturday. It expires one year after it is earned.</li>
+<li>Time is used oldest-expiring first. Assumptions to confirm with HR: the vacation cap date, the 8th-anniversary change, and the sick cap.</li>
+</ul></details>
+</main>
+<script>
+const START='2026-06-04',UNLOCK='2026-12-03',NAMES={vac:'Vacation',sick:'Sick',pers:'Personal',hol:'Holiday',flo:'Floater'};
+const DEF={target:'2026-12-31',plans:[],sunday:false,chk:{}};
+const P=s=>{const[a,b,c]=s.split('-').map(Number);return Date.UTC(a,b-1,c)/864e5};
+const F=n=>new Date(n*864e5).toISOString().slice(0,10);
+const add=(s,n)=>F(P(s)+n),dow=s=>new Date(P(s)*864e5).getUTCDay();
+const pad=n=>String(n).padStart(2,'0'),D=(y,m,d)=>`${y}-${pad(m)}-${pad(d)}`;
+const fmt=s=>new Date(P(s)*864e5).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric',timeZone:'UTC'});
+const yearsAt=d=>{const y=+d.slice(0,4);return y-2026-(d<D(y,6,4)?1:0)};
+const election=y=>{const f=1+((1-dow(D(y,11,1))+7)%7);return D(y,11,f+1)};
+const r2=n=>Math.round(n*100)/100;
+const days=p=>{if(!p.d2||p.d2<=p.d)return[p.d];const o=[];for(let d=p.d;d<=p.d2;d=add(d,1)){const w=dow(d);if(w>0&&w<6)o.push(d)}return o};
+const todayS=()=>{const t=new Date();return D(t.getFullYear(),t.getMonth()+1,t.getDate())};
+function chkRender(){const c=S.chk||{},el=$('chk');if(!c.d){el.innerHTML='<p class="empty">Enter a paystub date and the balances shown on it.</p>';return}
+ const r=sim({...S,target:c.d});
+ el.innerHTML='<ul>'+['sick','pers','hol','flo'].filter(k=>c[k]!==undefined&&c[k]!=='').map(k=>{const a=r.tot(k),b=parseFloat(c[k]),df=r2(b-a);
+ return`<li class="i"><span>${NAMES[k]}</span><span style="text-align:right">planner ${r2(a)} h · paystub ${b} h ${df===0?'· matches':'· paystub is '+(df>0?'+':'')+df+' h'}</span></li>`}).join('')+'</ul>'}
+let S;
+try{S=Object.assign({},DEF,JSON.parse(localStorage.getItem('pto-v2')||'{}'))}catch(e){S=Object.assign({},DEF)}
+const save=()=>{try{localStorage.setItem('pto-v2',JSON.stringify(S))}catch(e){}};
+
+function sim(S){
+ const base=add(START,-1),end=S.target,L={vac:[],sick:[],pers:[],hol:[],flo:[]},log=[],warn=[];
+ let pays=0,vA=0,sA=0;
+ const tot=c=>L[c].reduce((a,l)=>a+l.h,0);
+ const cr=(c,h,exp='9999')=>{const l=L[c].find(x=>x.exp===exp);l?l.h+=h:L[c].push({h,exp})};
+ const expire=d=>{for(const c in L)L[c]=L[c].filter(l=>{if(l.exp<=d){if(l.h>0)log.push({d:l.exp,t:`${r2(l.h)} h ${NAMES[c]} expires unused`});return false}return true})};
+ cr('vac',0);cr('sick',0);cr('pers',40,D(2027,6,4));
+ 
+ 
+ 
+ 
+ const ev=[],push=(d,o,k)=>{if(d>base&&d<=end)ev.push(Object.assign({d,k},o))};
+ for(let i=0;;i++){const e=add(START,14*i+13);if(e>end)break;push(e,{t:'pay'},1)}
+ for(let y=2026;y<=+end.slice(0,4)+1;y++){
+  if(y>=2027)push(D(y,6,4),{t:'ann',n:y-2026},0);
+  push(D(y,2,12),{t:'cr',c:'flo',h:8,ex:D(y+1,2,12),n:"Lincoln's Birthday"},1);
+  push(election(y),{t:'cr',c:'flo',h:8,ex:election(y+1),n:'Election Day'},1);
+  [[1,1,"New Year's Day"],[7,4,'Independence Day'],[11,11,'Veterans Day'],[12,25,'Christmas']].forEach(([m,d,n])=>{
+   const ds=D(y,m,d),w=dow(ds);if(w===6||(S.sunday&&w===0))push(ds,{t:'cr',c:'hol',h:8,ex:D(y+1,m,d),n:n+' on a weekend'},1)});
+ }
+ (S.plans||[]).forEach(p=>days(p).forEach(d=>push(d,{t:'use',c:p.c,h:+p.h},2)));
+ ev.sort((a,b)=>a.d<b.d?-1:a.d>b.d?1:a.k-b.k);
+ for(const e of ev){
+  expire(e.d);
+  if(e.t==='pay'){const vr=yearsAt(e.d)>=8?6:4;cr('vac',vr);cr('sick',4);pays++;vA+=vr;sA+=4;
+   const o=tot('sick')-2000;if(o>0)L.sick[0].h-=o}
+  else if(e.t==='ann'){
+   cr('pers',40,D(+e.d.slice(0,4)+1,6,4));
+   const o=tot('vac')-320;if(o>0){L.vac[0].h-=o;log.push({d:e.d,t:`${r2(o)} h Vacation over the 320 h cap is lost`})}
+   if(e.n<8){cr('vac',8*e.n);log.push({d:e.d,t:`Anniversary ${e.n}: Personal resets to 40 h, +${8*e.n} h Vacation`})}
+   else log.push({d:e.d,t:`Anniversary ${e.n}: Personal resets to 40 h`})}
+  else if(e.t==='cr'){cr(e.c,e.h,e.ex);log.push({d:e.d,t:`+${e.h} h ${NAMES[e.c]} (${e.n})`})}
+  else if(e.t==='use'){
+   if(e.c==='vac'&&e.d<UNLOCK)warn.push(`${fmt(e.d)}: Vacation isn't usable until ${fmt(UNLOCK)}.`);
+   let need=e.h;L[e.c].sort((a,b)=>a.exp<b.exp?-1:1);
+   for(const l of L[e.c]){if(need<=0)break;if(l.h<=0)continue;const t=Math.min(l.h,need);l.h-=t;need-=t}
+   if(need>0){cr(e.c,-need);warn.push(`${fmt(e.d)}: not enough ${NAMES[e.c]} (short ${r2(need)} h).`)}
+   log.push({d:e.d,t:`−${e.h} h ${NAMES[e.c]} (${e.d<=todayS()?'used':'planned'})`})}
+ }
+ expire(end);
+ return{L,tot,log,warn,pays,vA,sA};
+}
+
+const $=id=>document.getElementById(id);
+const hd=h=>`${r2(h)}<small> h · ${r2(h/8)} days</small>`;
+function render(){
+ const r=sim(S),locked=S.target<UNLOCK;chkRender();
+ $('warns').innerHTML=r.warn.map(w=>`<div class="warn">${w}</div>`).join('');
+ $('cards').innerHTML=['vac','sick','pers','hol','flo'].map(c=>{
+  let t='',w=false;const ex=r.L[c].filter(l=>l.exp!=='9999'&&l.h>0).sort((a,b)=>a.exp<b.exp?-1:1)[0];
+  if(c==='vac'&&locked){t=`Accrued, but locked until ${fmt(UNLOCK)}`;w=true}
+  else if(ex){t=`${r2(ex.h)} h expires ${fmt(ex.exp)}`;w=true}
+  else if(c==='sick')t='Carries over, 2,000 h cap';else if(c==='vac')t='Carries over, 320 h cap each June 4';
+  const v=r.tot(c);return`<div class="card${w?' w':''}"><div class="n">${NAMES[c]}</div><div class="v">${hd(v)}</div><div class="t${w?' w':''}">${t||'&nbsp;'}</div></div>`}).join('');
+ const pl=(S.plans||[]).map((p,i)=>({...p,i})).sort((a,b)=>a.d<b.d?-1:1);
+ $('plans').innerHTML=pl.length?pl.map(p=>`<li class="i"><span>${fmt(p.d)}${p.d2&&p.d2>p.d?' – '+fmt(p.d2):''}</span><span style="flex:1;color:var(--ink)">${days(p).length>1?days(p).length+' days × '+p.h+' h = '+r2(days(p).length*p.h):p.h} h ${NAMES[p.c]}${p.d<=todayS()?' · used':''}${p.d>S.target?' <em style="color:var(--mut)">(after selected date)</em>':''}</span><button data-del="${p.i}" aria-label="Remove">Remove</button></li>`).join(''):'<p class="empty">Nothing yet. Add time you have already taken, or days you plan to take.</p>';
+ const lg=r.log.sort((a,b)=>a.d<b.d?1:-1);
+ const head=r.pays?`<li class="i"><span>${r.pays} pay periods</span><span>+${r2(r.vA)} h Vacation, +${r2(r.sA)} h Sick</span></li>`:'';
+ $('log').innerHTML=head+lg.map(l=>`<li class="i"><span>${fmt(l.d)}</span><span style="text-align:right">${l.t}</span></li>`).join('')||'<p class="empty">Nothing changes between your starting balances and this date.</p>';
+}
+document.querySelectorAll('[data-k]').forEach(el=>{
+ const k=el.dataset.k;if(el.type==='checkbox')el.checked=!!S[k];else el.value=S[k]??'';
+ el.addEventListener('change',()=>{S[k]=el.type==='checkbox'?el.checked:el.type==='number'?parseFloat(el.value)||0:el.value;save();render()})});
+document.querySelectorAll('[data-c]').forEach(el=>{const k=el.dataset.c;el.value=(S.chk||{})[k]??'';el.addEventListener('change',()=>{S.chk=S.chk||{};S.chk[k]=el.value;save();render()})});
+$('today').onclick=()=>{const t=new Date(),s=D(t.getFullYear(),t.getMonth()+1,t.getDate());S.target=s;document.querySelector('[data-k=target]').value=s;save();render()};
+$('padd').onclick=()=>{const d=$('pd').value,h=parseFloat($('ph').value);if(!d||!(h>0))return;const d2=$('pd2').value;S.plans.push({d,d2:d2>d?d2:'',c:$('pc').value,h});save();render()};
+$('plans').onclick=e=>{const i=e.target.dataset.del;if(i!=null){S.plans.splice(+i,1);save();render()}};
+$('reset').onclick=()=>{if(confirm('Reset balances, plans and settings?')){S=Object.assign({},DEF,{plans:[]});save();location.reload()}};
+let G={};try{G=JSON.parse(localStorage.getItem('pto-git')||'{}')}catch(e){}
+const gsave=()=>{try{localStorage.setItem('pto-git',JSON.stringify(G))}catch(e){}};
+const con=m=>{const el=$('con');el.textContent+=`[${new Date().toLocaleTimeString()}] ${m}\n`;el.scrollTop=el.scrollHeight};
+document.querySelectorAll('[data-g]').forEach(el=>{const k=el.dataset.g;el.value=G[k]||'';el.addEventListener('change',()=>{G[k]=el.value.trim();gsave()})});
+const ghReq=(p,o={})=>fetch('https://api.github.com'+p,{...o,headers:{Accept:'application/vnd.github+json',Authorization:'Bearer '+G.token,'X-GitHub-Api-Version':'2022-11-28',...(o.body?{'Content-Type':'application/json'}:{})}});
+const gPath=()=>`/repos/${G.owner}/${G.repo}/contents/${encodeURI((G.path||'pto-data.json').replace(/^\/+/,''))}`;
+const gBr=()=>G.branch||'main';
+const gReady=()=>{if(G.owner&&G.repo&&G.token)return true;con('Fill in owner, repo and token first.');return false};
+const gErr=async r=>{let m='';try{m=(await r.json()).message}catch(e){}con(`HTTP ${r.status}${m?': '+m:''}`);
+ if(r.status===401)con('Token rejected. Check that it is correct and has not expired.');
+ if(r.status===403)con('Forbidden. The token needs Contents: read and write on this repo, or you are rate limited.');
+ if(r.status===404)con('Not found. Check owner, repo, branch and file path, and that the token can see the repo.')};
+const b64e=t=>btoa(String.fromCharCode(...new TextEncoder().encode(t)));
+const b64d=b=>new TextDecoder().decode(Uint8Array.from(atob(b.replace(/\s/g,'')),c=>c.charCodeAt(0)));
+$('gtest').onclick=async()=>{if(!gReady())return;con('Connecting to api.github.com…');
+ try{const r=await ghReq(`/repos/${G.owner}/${G.repo}`);if(!r.ok)return gErr(r);const j=await r.json();
+  con(`Repo ${j.full_name} found (${j.private?'private':'public'}).`);con(`Write access: ${j.permissions&&j.permissions.push?'yes':'no or unknown'}.`);
+  if(!j.private)con('Warning: this repo is public, so the data file would be public too.')}catch(e){con('Network error: '+e.message)}};
+$('gpull').onclick=async()=>{if(!gReady())return;con(`Pulling ${G.path||'pto-data.json'} from ${gBr()}…`);
+ try{const r=await ghReq(gPath()+'?ref='+encodeURIComponent(gBr()));if(r.status===404){con('No data file there yet. Push to create it.');return}if(!r.ok)return gErr(r);
+  const j=await r.json(),d=JSON.parse(b64d(j.content));if(!Array.isArray(d.plans))throw new Error('file has no plans list');
+  S.plans=d.plans;S.sunday=!!d.sunday;S.chk=d.chk||{};save();
+  document.querySelector('[data-k=sunday]').checked=S.sunday;
+  ['d','sick','pers','hol','flo'].forEach(k=>{document.querySelector(`[data-c=${k}]`).value=S.chk[k]??''});
+  con(`Pulled ${d.plans.length} entries (saved ${d.savedAt||'at an unknown time'}).`);render()}catch(e){con('Pull failed: '+e.message)}};
+$('gpush').onclick=async()=>{if(!gReady())return;con(`Pushing to ${G.owner}/${G.repo} (${gBr()})…`);
+ try{let sha;const r0=await ghReq(gPath()+'?ref='+encodeURIComponent(gBr()));
+  if(r0.ok){sha=(await r0.json()).sha;con('Existing file found, updating.')}else if(r0.status===404)con('No existing file, creating.');else return gErr(r0);
+  const now=new Date().toISOString(),body={message:'Update PTO data '+now,branch:gBr(),content:b64e(JSON.stringify({version:1,savedAt:now,plans:S.plans,sunday:S.sunday,chk:S.chk},null,1))};
+  if(sha)body.sha=sha;const r=await ghReq(gPath(),{method:'PUT',body:JSON.stringify(body)});if(!r.ok)return gErr(r);
+  const j=await r.json();con(`Pushed ${S.plans.length} entries. Commit ${j.commit.sha.slice(0,7)}.`)}catch(e){con('Push failed: '+e.message)}};
+$('gclr').onclick=()=>{delete G.token;gsave();document.querySelector('[data-g=token]').value='';con('Token removed from this browser.')};
+con('Ready. Nothing is sent until you press a button.');
+if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
+
+render();
+</script></body></html>
