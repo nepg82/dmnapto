@@ -65,10 +65,11 @@ details>summary+.panel{margin-top:8px}
 <div><label for="pd2">Through (optional)</label><input id="pd2" type="date"></div>
 <div><label for="pc">Category</label><select id="pc"><option value="vac">Vacation</option><option value="sick">Sick</option><option value="pers">Personal</option><option value="hol">Holiday</option><option value="flo">Floater</option></select></div>
 <div><label for="ph">Hours per day</label><input id="ph" type="number" value="8" min="0.25" step="0.25"></div>
+<div style="flex:2 1 220px"><label for="pn">Description (optional)</label><input id="pn" type="text" maxlength="80" placeholder="Beach trip"></div>
 <div style="flex:0 0 auto"><button id="padd">Add</button></div></div>
 <ul id="plans"></ul></div>
 
-<details><summary>What changes by then</summary>
+<details open><summary>What changes by then</summary>
 <div class="panel" style="margin-top:8px"><ul id="log"></ul></div></details>
 
 <details><summary>Check against a paystub</summary>
@@ -121,6 +122,7 @@ const fmt=s=>new Date(P(s)*864e5).toLocaleDateString('en-US',{month:'short',day:
 const yearsAt=d=>{const y=+d.slice(0,4);return y-2026-(d<D(y,6,4)?1:0)};
 const election=y=>{const f=1+((1-dow(D(y,11,1))+7)%7);return D(y,11,f+1)};
 const r2=n=>Math.round(n*100)/100;
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const days=p=>{if(!p.d2||p.d2<=p.d)return[p.d];const o=[];for(let d=p.d;d<=p.d2;d=add(d,1)){const w=dow(d);if(w>0&&w<6)o.push(d)}return o};
 const todayS=()=>{const t=new Date();return D(t.getFullYear(),t.getMonth()+1,t.getDate())};
 function chkRender(){const c=S.chk||{},el=$('chk');if(!c.d){el.innerHTML='<p class="empty">Enter a paystub date and the balances shown on it.</p>';return}
@@ -151,7 +153,7 @@ function sim(S){
   [[1,1,"New Year's Day"],[7,4,'Independence Day'],[11,11,'Veterans Day'],[12,25,'Christmas']].forEach(([m,d,n])=>{
    const ds=D(y,m,d),w=dow(ds);if(w===6||(S.sunday&&w===0))push(ds,{t:'cr',c:'hol',h:8,ex:D(y+1,m,d),n:n+' on a weekend'},1)});
  }
- (S.plans||[]).forEach(p=>days(p).forEach(d=>push(d,{t:'use',c:p.c,h:+p.h},2)));
+ (S.plans||[]).forEach(p=>days(p).forEach(d=>push(d,{t:'use',c:p.c,h:+p.h,n:p.n},2)));
  ev.sort((a,b)=>a.d<b.d?-1:a.d>b.d?1:a.k-b.k);
  for(const e of ev){
   expire(e.d);
@@ -168,7 +170,7 @@ function sim(S){
    let need=e.h;L[e.c].sort((a,b)=>a.exp<b.exp?-1:1);
    for(const l of L[e.c]){if(need<=0)break;if(l.h<=0)continue;const t=Math.min(l.h,need);l.h-=t;need-=t}
    if(need>0){cr(e.c,-need);warn.push(`${fmt(e.d)}: not enough ${NAMES[e.c]} (short ${r2(need)} h).`)}
-   log.push({d:e.d,t:`−${e.h} h ${NAMES[e.c]} (${e.d<=todayS()?'used':'planned'})`})}
+   log.push({d:e.d,t:`−${e.h} h ${NAMES[e.c]} (${e.d<=todayS()?'used':'planned'})${e.n?': '+esc(e.n):''}`})}
  }
  expire(end);
  return{L,tot,log,warn,pays,vA,sA};
@@ -186,7 +188,7 @@ function render(){
   else if(c==='sick')t='Carries over, 2,000 h cap';else if(c==='vac')t='Carries over, 320 h cap each June 4';
   const v=r.tot(c);return`<div class="card${w?' w':''}"><div class="n">${NAMES[c]}</div><div class="v">${hd(v)}</div><div class="t${w?' w':''}">${t||'&nbsp;'}</div></div>`}).join('');
  const pl=(S.plans||[]).map((p,i)=>({...p,i})).sort((a,b)=>a.d<b.d?-1:1);
- $('plans').innerHTML=pl.length?pl.map(p=>`<li class="i"><span>${fmt(p.d)}${p.d2&&p.d2>p.d?' – '+fmt(p.d2):''}</span><span style="flex:1;color:var(--ink)">${days(p).length>1?days(p).length+' days × '+p.h+' h = '+r2(days(p).length*p.h):p.h} h ${NAMES[p.c]}${p.d<=todayS()?' · used':''}${p.d>S.target?' <em style="color:var(--mut)">(after selected date)</em>':''}</span><button data-del="${p.i}" aria-label="Remove">Remove</button></li>`).join(''):'<p class="empty">Nothing yet. Add time you have already taken, or days you plan to take.</p>';
+ $('plans').innerHTML=pl.length?pl.map(p=>`<li class="i"><span>${fmt(p.d)}${p.d2&&p.d2>p.d?' – '+fmt(p.d2):''}</span><span style="flex:1;color:var(--ink)">${days(p).length>1?days(p).length+' days × '+p.h+' h = '+r2(days(p).length*p.h):p.h} h ${NAMES[p.c]}${p.d<=todayS()?' · used':''}${p.n?'<br><span style="color:var(--mut)">'+esc(p.n)+'</span>':''}${p.d>S.target?' <em style="color:var(--mut)">(after selected date)</em>':''}</span><button data-del="${p.i}" aria-label="Remove">Remove</button></li>`).join(''):'<p class="empty">Nothing yet. Add time you have already taken, or days you plan to take.</p>';
  const lg=r.log.sort((a,b)=>a.d<b.d?1:-1);
  const head=r.pays?`<li class="i"><span>${r.pays} pay periods</span><span>+${r2(r.vA)} h Vacation, +${r2(r.sA)} h Sick</span></li>`:'';
  $('log').innerHTML=head+lg.map(l=>`<li class="i"><span>${fmt(l.d)}</span><span style="text-align:right">${l.t}</span></li>`).join('')||'<p class="empty">Nothing changes between your starting balances and this date.</p>';
@@ -196,7 +198,9 @@ document.querySelectorAll('[data-k]').forEach(el=>{
  el.addEventListener('change',()=>{S[k]=el.type==='checkbox'?el.checked:el.type==='number'?parseFloat(el.value)||0:el.value;save();render()})});
 document.querySelectorAll('[data-c]').forEach(el=>{const k=el.dataset.c;el.value=(S.chk||{})[k]??'';el.addEventListener('change',()=>{S.chk=S.chk||{};S.chk[k]=el.value;save();render()})});
 $('today').onclick=()=>{const t=new Date(),s=D(t.getFullYear(),t.getMonth()+1,t.getDate());S.target=s;document.querySelector('[data-k=target]').value=s;save();render()};
-$('padd').onclick=()=>{const d=$('pd').value,h=parseFloat($('ph').value);if(!d||!(h>0))return;const d2=$('pd2').value;S.plans.push({d,d2:d2>d?d2:'',c:$('pc').value,h});save();render()};
+let prevFrom='';
+$('pd').addEventListener('input',()=>{const f=$('pd').value,t=$('pd2');if(!t.value||t.value<f||t.value===prevFrom)t.value=f;t.min=f;prevFrom=f});
+$('padd').onclick=()=>{const d=$('pd').value,h=parseFloat($('ph').value);if(!d||!(h>0))return;const d2=$('pd2').value;S.plans.push({d,d2:d2>d?d2:'',c:$('pc').value,h,n:$('pn').value.trim()});$('pn').value='';$('pd2').value=d;save();render()};
 $('plans').onclick=e=>{const i=e.target.dataset.del;if(i!=null){S.plans.splice(+i,1);save();render()}};
 $('reset').onclick=()=>{if(confirm('Reset balances, plans and settings?')){S=Object.assign({},DEF,{plans:[]});save();location.reload()}};
 let G={};try{G=JSON.parse(localStorage.getItem('pto-git')||'{}')}catch(e){}
